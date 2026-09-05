@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nissan Shift Handover Language Lab</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Google Fonts (Inter as substitute for Nissan Brand Font) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Load FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Configure Tailwind Theme (Nissan Brand Colors) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        nissan: {
+                            black: '#000000',
+                            red: '#c3002f',
+                            silver: '#c0c0c0',
+                            lightgrey: '#efefef',
+                            darkgrey: '#1a1a1a',
+                            panel: '#2a2a2a'
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'bounce-slight': 'bounceSlight 1s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        bounceSlight: {
+                            '0%, 100%': { transform: 'translateY(-2%)' },
+                            '50%': { transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom CSS for Flip Cards and animations -->
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #efefef;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Hide scrollbar for cleaner UI but keep functionality */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #555; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #c3002f; 
+        }
+
+        /* Flip Card Base Styles */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden; /* Safari */
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        .flipped .transform-style-3d {
+            transform: rotateY(180deg);
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Shadowing Line Highlight */
+        .dialogue-line {
+            transition: all 0.3s ease;
+        }
+        .dialogue-line.active {
+            background-color: rgba(195, 0, 47, 0.2);
+            border-left: 4px solid #c3002f;
+            padding-left: 1rem;
+            transform: scale(1.02);
+        }
+        
+        /* Custom Input Styling */
+        input[type="text"].nissan-input {
+            background-color: #333;
+            border: 1px solid #555;
+            color: white;
+            transition: border-color 0.3s;
+        }
+        input[type="text"].nissan-input:focus {
+            outline: none;
+            border-color: #c3002f;
+            box-shadow: 0 0 0 2px rgba(195, 0, 47, 0.3);
+        }
+        input[type="text"].correct {
+            border-color: #10b981; /* green-500 */
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+        input[type="text"].incorrect {
+            border-color: #ef4444; /* red-500 */
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col font-sans selection:bg-nissan-red selection:text-white">
+    
+    <!-- Canvas for Confetti -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Header Navigation -->
+    <header class="bg-nissan-black border-b-2 border-nissan-red sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <!-- Nissan Style Logo (Abstracted for demo purposes) -->
+                <div class="w-10 h-10 rounded-full border-2 border-nissan-silver flex items-center justify-center bg-nissan-black relative overflow-hidden">
+                    <div class="absolute w-full h-2 bg-nissan-silver top-1/2 -translate-y-1/2"></div>
+                    <span class="relative z-10 text-[10px] font-bold text-nissan-black bg-nissan-silver px-1 tracking-wider uppercase">MALL</span>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight hidden sm:block">Shift Handover Language Lab</h1>
+                <h1 class="text-xl font-bold tracking-tight sm:hidden">Handover Lab</h1>
+            </div>
+            
+            <!-- Progress Indicator -->
+            <div class="flex items-center gap-2 text-sm text-nissan-silver">
+                <i class="fa-solid fa-graduation-cap text-nissan-red"></i>
+                <span id="overall-progress">0/3 Completed</span>
+            </div>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="max-w-4xl mx-auto px-4 flex gap-6 border-t border-gray-800">
+            <button onclick="switchTab('training')" id="tab-btn-training" class="py-3 text-nissan-red font-bold border-b-2 border-nissan-red transition-colors">
+                <i class="fa-solid fa-chalkboard-user mr-2"></i>Training Lab
+            </button>
+            <button onclick="switchTab('quiz')" id="tab-btn-quiz" class="py-3 text-gray-500 hover:text-white font-semibold border-b-2 border-transparent transition-colors">
+                <i class="fa-solid fa-file-pen mr-2"></i>Final Evaluation
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-4xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex flex-col gap-8">
+        
+        <!-- TRAINING TAB -->
+        <div id="tab-training" class="flex flex-col gap-8 animate-fade-in">
+            <!-- Welcome Section -->
+            <section class="text-center py-6 animate-fade-in">
+            </div>
+            
+            <div id="module-1-content" class="p-6 flex flex-col gap-6">
+                <!-- Warm up Prompt -->
+                <div class="bg-nissan-darkgrey p-4 rounded-lg border-l-4 border-nissan-red">
+                    <label for="warmup-input" class="block font-semibold mb-2"><i class="fa-solid fa-comment-dots mr-2 text-nissan-red"></i>Warm-up Reflection:</label>
+                    <p class="text-sm text-nissan-silver mb-3">When you start your shift, how do you know what happened on the shift before you?</p>
+                    <textarea id="warmup-input" rows="2" class="w-full bg-[#333] border border-gray-600 rounded p-3 text-white focus:outline-none focus:border-nissan-red resize-none" placeholder="Type your thoughts here... (e.g., I read the logbook, I talk to the previous supervisor)"></textarea>
+                </div>
+
+                <!-- Grammar Box -->
+                <div class="bg-blue-900/20 border border-blue-800 p-5 rounded-lg">
+                    <h4 class="font-bold text-blue-400 mb-3 text-lg"><i class="fa-solid fa-book-open mr-2"></i>Grammar: Past Simple Affirmative</h4>
+                    <p class="mb-3 text-sm">Use the Past Simple to report actions that are 100% finished.</p>
+                    <div class="bg-nissan-darkgrey p-3 rounded font-mono text-sm overflow-x-auto">
+                        <span class="text-green-400">Subject</span> + <span class="text-yellow-400">Verb(ed/irregular)</span> + <span class="text-white">Object</span> + <span class="text-purple-400">Time Marker</span>
+                    </div>
+                    <ul class="mt-3 text-sm list-disc pl-5 space-y-1">
+                        <li><span class="text-green-400">Maintenance</span> <span class="text-yellow-400">fixed</span> <span class="text-white">the robot</span> <span class="text-purple-400">last shift</span>.</li>
+                        <li><span class="text-green-400">I</span> <span class="text-yellow-400">saw</span> <span class="text-white">a defect</span> <span class="text-purple-400">10 minutes ago</span>.</li>
+                    </ul>
+                </div>
+
+                <!-- Flashcards -->
+                <div>
+                    <div class="flex justify-between items-end mb-4">
+                        <h4 class="font-bold text-lg">Vocabulary Flashcards</h4>
+                        <span class="text-xs text-nissan-silver bg-gray-700 px-2 py-1 rounded">Tap card to flip</span>
+                    </div>
+                    
+                    <!-- Flashcard Grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="flashcard-container">
+                        <!-- Cards injected via JS -->
+                    </div>
+                    
+                    <div class="mt-6 flex justify-center">
+                        <button onclick="markModuleComplete(1)" id="btn-mod1-complete" class="bg-nissan-red hover:bg-red-700 text-white font-bold py-2 px-6 rounded transition-colors shadow-lg flex items-center gap-2">
+                            <span>Complete Module 1</span>
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Module 2: Interactive Practice -->
+        <section id="module-2" class="bg-nissan-panel rounded-xl shadow-lg border border-gray-700 overflow-hidden transition-all duration-300">
+            <div class="bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-4 border-b border-gray-700 flex justify-between items-center cursor-pointer" onclick="toggleModule('module-2-content')">
+                <div class="flex items-center gap-3">
+                    <span class="bg-nissan-red text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">2</span>
+                    <h3 class="text-xl font-semibold">Interactive Practice (15m)</h3>
+                </div>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300 transform -rotate-90" id="module-2-icon"></i>
+            </div>
+            
+            <div id="module-2-content" class="p-6 hidden flex-col gap-6">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-nissan-silver text-sm">Transform the sentence into the Past Simple. Type the correct past tense verb.</p>
+                    <div class="text-xl font-bold bg-nissan-darkgrey px-3 py-1 rounded border border-gray-600">
+                        Score: <span id="quiz-score" class="text-nissan-red">0</span>/5
+                    </div>
+                </div>
+
+                <div class="space-y-6" id="quiz-container">
+                    <!-- Questions injected via JS -->
+                </div>
+
+                <div class="flex justify-between items-center mt-4">
+                    <button onclick="checkQuizAnswers()" class="bg-gray-200 hover:bg-white text-black font-bold py-2 px-6 rounded transition-colors shadow-lg">
+                        Check Answers
+                    </button>
+                    <button onclick="markModuleComplete(2)" id="btn-mod2-complete" class="bg-nissan-red hover:bg-red-700 text-white font-bold py-2 px-6 rounded transition-colors shadow-lg hidden items-center gap-2">
+                        <span>Complete Module 2</span>
+                        <i class="fa-solid fa-check"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Module 3: Shadowing & Pronunciation -->
+        <section id="module-3" class="bg-nissan-panel rounded-xl shadow-lg border border-gray-700 overflow-hidden transition-all duration-300">
+            <div class="bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-4 border-b border-gray-700 flex justify-between items-center cursor-pointer" onclick="toggleModule('module-3-content')">
+                <div class="flex items-center gap-3">
+                    <span class="bg-nissan-red text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">3</span>
+                    <h3 class="text-xl font-semibold">Shadowing Lab (20m)</h3>
+                </div>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300 transform -rotate-90" id="module-3-icon"></i>
+            </div>
+            
+            <div id="module-3-content" class="p-6 hidden flex-col gap-6">
+                <p class="text-nissan-silver text-sm mb-2">Listen to the handover dialogue, then practice shadowing (repeating at the same speed and rhythm). Click a line to highlight it.</p>
+                
+                <!-- Audio Controls -->
+                <div class="flex flex-wrap gap-3 mb-4 p-3 bg-nissan-darkgrey rounded-lg border border-gray-700 items-center justify-between">
+                    <div class="flex gap-2">
+                        <button onclick="playRecordedAudio()" id="btn-play-all" class="bg-nissan-red hover:bg-red-700 text-white px-4 py-2 rounded transition-colors flex items-center gap-2 text-sm shadow-md font-semibold">
+                            <i class="fa-solid fa-podcast"></i> Play Recorded Audio
+                        </button>
+                        <button onclick="playFullDialogue()" id="btn-play-synth" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors flex items-center gap-2 text-sm">
+                            <i class="fa-solid fa-robot"></i> Synth Voice
+                        </button>
+                        <button onclick="stopAudio()" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded transition-colors flex items-center gap-2 text-sm" title="Stop Audio">
+                            <i class="fa-solid fa-stop"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <label for="playback-speed" class="text-xs text-gray-400 uppercase tracking-wider">Speed:</label>
+                        <select id="playback-speed" onchange="updateAudioSpeed()" class="bg-gray-800 border border-gray-600 text-white text-sm rounded px-2 py-1 outline-none transition-colors focus:border-nissan-red">
+                            <option value="0.5">Very Slow (0.5x)</option>
+                            <option value="0.75">Slow (0.75x)</option>
+                            <option value="1.0" selected>Normal (1.0x)</option>
+                            <option value="1.25">Fast (1.25x)</option>
+                            <option value="1.5">Very Fast (1.5x)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dialogue Script -->
+                <div class="bg-gray-900 p-4 sm:p-6 rounded-lg border border-gray-700 shadow-inner" id="dialogue-container">
+                    <!-- Dialogue lines injected via JS -->
+                </div>
+
+                <!-- Voice Recording Mockup / Mic Check -->
+                <div class="mt-6 border-t border-gray-700 pt-6">
+                    <h4 class="font-bold text-lg mb-3">Pronunciation Mirror</h4>
+                    <p class="text-xs text-gray-400 mb-4">Click microphone, speak the active line, and compare your pacing.</p>
+                    
+                    <div class="flex items-center gap-4 bg-nissan-darkgrey p-4 rounded-lg">
+                        <button id="btn-record" class="w-12 h-12 rounded-full bg-gray-700 hover:bg-nissan-red text-white flex justify-center items-center text-xl transition-colors shadow-lg">
+                            <i class="fa-solid fa-microphone"></i>
+                        </button>
+                        <div class="flex-grow">
+                            <div class="h-2 bg-gray-800 rounded-full overflow-hidden flex items-center">
+                                <div id="audio-visualizer" class="h-full bg-nissan-red w-0 transition-all duration-100"></div>
+                            </div>
+                            <p id="record-status" class="text-xs text-gray-400 mt-2 font-mono">Standby</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-center">
+                    <button onclick="finishCourse()" id="btn-mod3-complete" class="bg-nissan-red hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-[0_0_15px_rgba(195,0,47,0.4)] text-lg">
+                        Complete Training
+                    </button>
+                </div>
+            </div>
+        </section>
+        </div> <!-- End of Training Tab -->
+
+        <!-- QUIZ TAB -->
+        <div id="tab-quiz" class="hidden flex-col gap-8 animate-fade-in">
+            <section class="bg-nissan-panel rounded-xl shadow-lg border border-gray-700 p-6 sm:p-8">
+                <!-- Registration Step -->
+                <div id="quiz-registration" class="max-w-md mx-auto text-center py-8">
+                    <div class="w-16 h-16 bg-nissan-red rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-clipboard-user text-3xl text-white"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-2">Final Evaluation</h2>
+                    <p class="text-nissan-silver text-sm mb-6">Enter your details to begin the 15-question evaluation.</p>
+                    
+                    <div class="space-y-4 text-left">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Full Name</label>
+                            <input type="text" id="student-name" class="w-full bg-[#333] border border-gray-600 rounded p-3 text-white focus:outline-none focus:border-nissan-red" placeholder="e.g., Juan Perez">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Group</label>
+                            <select id="student-group" class="w-full bg-[#333] border border-gray-600 rounded p-3 text-white focus:outline-none focus:border-nissan-red">
+                                <option value="" disabled selected>Select your group</option>
+                                <option value="Group C">Group C</option>
+                                <option value="Group D">Group D</option>
+                            </select>
+                        </div>
+                        <button onclick="startFinalQuiz()" class="w-full bg-nissan-red hover:bg-red-700 text-white font-bold py-3 rounded mt-4 transition-colors">
+                            Start Quiz
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Quiz Step -->
+                <div id="quiz-active" class="hidden">
+                    <div class="flex justify-between items-end mb-6 border-b border-gray-700 pb-4">
+                        <div>
+                            <h2 class="text-2xl font-bold">Shift Handover Quiz</h2>
+                            <p class="text-nissan-silver text-sm" id="quiz-student-display">Student: -- | Group: --</p>
+                        </div>
+                        <div class="text-sm font-bold bg-gray-800 px-3 py-1 rounded">15 Questions</div>
+                    </div>
+                    
+                    <div id="final-questions-container" class="space-y-8">
+                        <!-- Injected via JS -->
+                    </div>
+                    
+                    <div class="mt-8 pt-6 border-t border-gray-700 flex justify-end">
+                        <button onclick="submitFinalQuiz()" class="bg-nissan-red hover:bg-red-700 text-white font-bold py-3 px-8 rounded transition-colors text-lg shadow-lg">
+                            Submit Answers
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quiz Results Step -->
+                <div id="quiz-results" class="hidden max-w-lg mx-auto text-center py-8">
+                    <div id="result-icon-container" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <i id="result-icon" class="text-4xl text-white"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold mb-2">Evaluation Complete</h2>
+                    <div class="text-5xl font-bold mb-2" id="final-score-display">0%</div>
+                    <p class="text-nissan-silver mb-8" id="final-score-message">Great job completing the training.</p>
+                    
+                    <button onclick="downloadCertificate()" class="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded transition-colors shadow-lg mb-4">
+                        <i class="fa-solid fa-download"></i> Download Results (JPG)
+                    </button>
+                    <button onclick="switchTab('training')" class="w-full flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded transition-colors">
+                        Return to Training
+                    </button>
+                </div>
+            </section>
+        </div> <!-- End of Quiz Tab -->
+
+    </main>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[100] hidden flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-nissan-panel border border-nissan-red p-8 rounded-xl max-w-md w-full text-center shadow-2xl transform scale-95 opacity-0 transition-all duration-300" id="modal-content">
+            <div class="w-20 h-20 bg-nissan-red rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-900/50">
+                <i class="fa-solid fa-medal text-4xl text-white"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-2">Training Complete!</h2>
+            <p class="text-nissan-silver mb-6">Excellent work. You are ready to accurately report maintenance issues in the next shift handover.</p>
+            <button onclick="closeModal()" class="w-full bg-white text-nissan-black hover:bg-gray-200 font-bold py-3 px-4 rounded transition-colors">
+                Return to Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- Data Models ---
+        const vocabData = [
+            { base: "Check", past: "Checked", type: "verb", context: "I checked the oil levels." },
+            { base: "Fix", past: "Fixed", type: "verb", context: "Maintenance fixed the sensor." },
+            { base: "Break", past: "Broke", type: "verb", context: "The belt broke at 2 AM." },
+            { base: "See", past: "Saw", type: "verb", context: "We saw a quality defect." },
+            { base: "Last Shift", past: "Past 8 Hours", type: "time", context: "Happened during team B's run." },
+            { base: "10 mins ago", past: "Recent Past", type: "time", context: "Happened very recently." }
+        ];
+
+        const quizData = [
+            { 
+                text: "Yesterday, maintenance ({verb}) the robot arm.", 
+                baseVerb: "fix", 
+                answer: "fixed" 
+            },
+            { 
+                text: "During the last shift, the conveyor belt ({verb}) suddenly.", 
+                baseVerb: "break", 
+                answer: "broke" 
+            },
+            { 
+                text: "I ({verb}) the pressure valves 10 minutes ago.", 
+                baseVerb: "check", 
+                answer: "checked" 
+            },
+            { 
+                text: "We ({verb}) a small scratch on the door panel.", 
+                baseVerb: "see", 
+                answer: "saw" 
+            },
+            { 
+                text: "The line ({verb}) running smoothly after the repair.", 
+                baseVerb: "start", 
+                answer: "started" 
+            }
+        ];
+
+        const dialogueData = [
+            { speaker: "Supervisor A", text: "What happened on the line last shift?", role: "A" },
+            { speaker: "Supervisor B", text: "Well, conveyor belt 2 broke about 30 minutes ago.", role: "B" },
+            { speaker: "Supervisor A", text: "Did maintenance fix it?", role: "A" },
+            { speaker: "Supervisor B", text: "Yes, they fixed it quickly, but we saw a small quality defect on door panels.", role: "B" },
+            { speaker: "Supervisor A", text: "Did you stop the line when you saw the defect?", role: "A" },
+            { speaker: "Supervisor B", text: "Yes, we stopped it immediately and checked the welding robots.", role: "B" },
+            { speaker: "Supervisor A", text: "Good call. Did they find the root cause?", role: "A" },
+            { speaker: "Supervisor B", text: "The technician checked the sensors and recalibrated robot arm 3.", role: "B" },
+            { speaker: "Supervisor A", text: "Did it run okay after that?", role: "A" },
+            { speaker: "Supervisor B", text: "Yes, it ran smoothly for the rest of the shift. We produced 450 units.", role: "B" },
+            { speaker: "Supervisor A", text: "Excellent. I'll make sure my team monitors the door panels closely.", role: "A" }
+        ];
+
+        // --- Final Quiz Data ---
+        const finalQuizData = [
+            { q: "1. Yesterday, the line ______.", options: ["stop", "stopped", "stopping"], ans: 1 },
+            { q: "2. Maintenance ______ the robot arm 10 minutes ago.", options: ["fix", "fixed", "fixes"], ans: 1 },
+            { q: "3. We ______ a quality defect on the door panels.", options: ["see", "saw", "seen"], ans: 1 },
+            { q: "4. Conveyor belt 2 ______ during the last shift.", options: ["break", "broke", "broken"], ans: 1 },
+            { q: "5. They ______ the sensors immediately.", options: ["check", "checked", "checks"], ans: 1 },
+            { q: "6. The technician ______ robot arm 3.", options: ["recalibrate", "recalibrated", "recalibrates"], ans: 1 },
+            { q: "7. Did it ______ okay after that?", options: ["ran", "run", "runs"], ans: 1 },
+            { q: "8. Yes, it ______ smoothly for the rest of the shift.", options: ["run", "ran", "runs"], ans: 1 },
+            { q: "9. We ______ 450 units yesterday.", options: ["produce", "produced", "producing"], ans: 1 },
+            { q: "10. I ______ the root cause at 3 AM.", options: ["find", "found", "finding"], ans: 1 },
+            { q: "11. Which time marker indicates the Past Simple?", options: ["Tomorrow", "Now", "Last shift"], ans: 2 },
+            { q: "12. Did they ______ it quickly?", options: ["fix", "fixed", "fixing"], ans: 0 },
+            { q: "13. The alarm ______ off 30 minutes ago.", options: ["go", "went", "gone"], ans: 1 },
+            { q: "14. We ______ the shift with a team briefing.", options: ["start", "started", "starting"], ans: 1 },
+            { q: "15. He ______ the issue to the next supervisor.", options: ["report", "reported", "reporting"], ans: 1 }
+        ];
+
+        let finalStudent = { name: "", group: "", score: 0 };
+        let activeAudio = null; // for Realistic Audio API
+
+        // --- Application State ---
+        let modulesCompleted = { 1: false, 2: false, 3: false };
+        let activeDialogueLine = -1;
+        let speechSynth = window.speechSynthesis;
+        let currentUtterance = null;
+        let isRecording = false;
+        let recordingInterval;
+
+        // --- Tab Switching Logic ---
+        function switchTab(tab) {
+            stopAudio(); 
+            const trainingTab = document.getElementById('tab-training');
+            const quizTab = document.getElementById('tab-quiz');
+            const btnTraining = document.getElementById('tab-btn-training');
+            const btnQuiz = document.getElementById('tab-btn-quiz');
+
+            if (tab === 'training') {
+                trainingTab.classList.remove('hidden');
+                quizTab.classList.add('hidden');
+                btnTraining.classList.replace('text-gray-500', 'text-nissan-red');
+                btnTraining.classList.replace('hover:text-white', 'font-bold');
+                btnTraining.classList.replace('border-transparent', 'border-nissan-red');
+                btnQuiz.classList.replace('text-nissan-red', 'text-gray-500');
+                btnQuiz.classList.replace('font-bold', 'hover:text-white');
+                btnQuiz.classList.replace('border-nissan-red', 'border-transparent');
+            } else {
+                trainingTab.classList.add('hidden');
+                quizTab.classList.remove('hidden');
+                btnQuiz.classList.replace('text-gray-500', 'text-nissan-red');
+                btnQuiz.classList.replace('hover:text-white', 'font-bold');
+                btnQuiz.classList.replace('border-transparent', 'border-nissan-red');
+                btnTraining.classList.replace('text-nissan-red', 'text-gray-500');
+                btnTraining.classList.replace('font-bold', 'hover:text-white');
+                btnTraining.classList.replace('border-nissan-red', 'border-transparent');
+            }
+        }
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderFlashcards();
+            renderQuiz();
+            renderDialogue();
+            
+            // Handle speech synthesis loading (can be asynchronous in some browsers)
+            if (speechSynth.onvoiceschanged !== undefined) {
+                speechSynth.onvoiceschanged = () => { /* Voices loaded */ };
+            }
+        });
+
+        // --- UI Interactions ---
+        function toggleModule(moduleId) {
+            const content = document.getElementById(moduleId);
+            const iconId = moduleId.replace('-content', '-icon');
+            const icon = document.getElementById(iconId);
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                content.classList.add('flex');
+                icon.classList.remove('-rotate-90');
+            } else {
+                content.classList.add('hidden');
+                content.classList.remove('flex');
+                icon.classList.add('-rotate-90');
+            }
+        }
+
+        function updateProgress() {
+            const completedCount = Object.values(modulesCompleted).filter(Boolean).length;
+            document.getElementById('overall-progress').textContent = `${completedCount}/3 Completed`;
+            
+            if (completedCount === 3) {
+                document.getElementById('overall-progress').classList.add('text-green-400');
+            }
+        }
+
+        function markModuleComplete(modNum) {
+            modulesCompleted[modNum] = true;
+            const btn = document.getElementById(`btn-mod${modNum}-complete`);
+            btn.classList.remove('bg-nissan-red', 'hover:bg-red-700');
+            btn.classList.add('bg-green-600', 'hover:bg-green-700', 'cursor-default');
+            btn.innerHTML = `<span>Module ${modNum} Done</span> <i class="fa-solid fa-check-circle"></i>`;
+            
+            updateProgress();
+            
+            // Auto open next module
+            if (modNum < 3) {
+                const nextModContent = `module-${modNum + 1}-content`;
+                if (document.getElementById(nextModContent).classList.contains('hidden')) {
+                    toggleModule(nextModContent);
+                    // Scroll to next module
+                    setTimeout(() => {
+                        document.getElementById(`module-${modNum + 1}`).scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 300);
+                }
+            }
+        }
+
+        // --- Module 1: Flashcards Logic ---
+        function renderFlashcards() {
+            const container = document.getElementById('flashcard-container');
+            container.innerHTML = vocabData.map((card, index) => `
+                <div class="perspective-1000 w-full h-32 cursor-pointer group" onclick="this.classList.toggle('flipped')">
+                    <div class="transform-style-3d relative w-full h-full duration-500 rounded-lg shadow-md">
+                        <!-- Front -->
+                        <div class="backface-hidden absolute w-full h-full bg-[#333] border border-gray-600 rounded-lg flex flex-col items-center justify-center p-4">
+                            <span class="text-xs text-gray-400 uppercase tracking-wider mb-1">${card.type}</span>
+                            <span class="text-lg font-bold">${card.base}</span>
+                            <i class="fa-solid fa-arrows-rotate mt-2 text-nissan-red opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                        </div>
+                        <!-- Back -->
+                        <div class="backface-hidden rotate-y-180 absolute w-full h-full bg-nissan-red text-white rounded-lg flex flex-col items-center justify-center p-4 border border-red-800">
+                            <span class="text-xl font-bold mb-1">${card.past}</span>
+                            <span class="text-xs text-center opacity-90 leading-tight">"${card.context}"</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- Module 2: Quiz Logic ---
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = quizData.map((q, index) => {
+                // Split text to insert input field
+                const parts = q.text.split(/\{verb\}/);
+                return `
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-nissan-darkgrey rounded border border-gray-700">
+                        <span class="text-gray-500 font-mono w-6 text-right shrink-0">${index + 1}.</span>
+                        <div class="flex-grow flex flex-wrap items-center gap-x-2 gap-y-2 text-sm sm:text-base">
+                            <span>${parts[0]}</span>
+                            <div class="relative">
+                                <input type="text" 
+                                    id="quiz-q${index}" 
+                                    data-answer="${q.answer}"
+                                    class="nissan-input rounded px-3 py-1 w-24 text-center font-bold" 
+                                    placeholder="(${q.baseVerb})"
+                                    autocomplete="off">
+                                <i id="icon-q${index}" class="absolute -right-6 top-2 hidden"></i>
+                            </div>
+                            <span>${parts[1]}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function checkQuizAnswers() {
+            let score = 0;
+            quizData.forEach((q, index) => {
+                const input = document.getElementById(`quiz-q${index}`);
+                const icon = document.getElementById(`icon-q${index}`);
+                const userAnswer = input.value.trim().toLowerCase();
+                
+                input.classList.remove('correct', 'incorrect');
+                icon.className = 'absolute -right-6 top-1.5 text-lg'; // reset classes
+                
+                if (userAnswer === q.answer) {
+                    score++;
+                    input.classList.add('correct');
+                    icon.classList.add('fa-solid', 'fa-check', 'text-green-500', 'block');
+                    icon.classList.remove('hidden');
+                } else {
+                    input.classList.add('incorrect');
+                    icon.classList.add('fa-solid', 'fa-xmark', 'text-red-500', 'block');
+                    icon.classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('quiz-score').textContent = score;
+
+            if (score === quizData.length) {
+                document.getElementById('btn-mod2-complete').classList.remove('hidden');
+                document.getElementById('btn-mod2-complete').classList.add('flex');
+                triggerSmallConfetti();
+            }
+        }
+
+        // --- Module 3: Shadowing Logic ---
+        function renderDialogue() {
+            const container = document.getElementById('dialogue-container');
+            container.innerHTML = dialogueData.map((line, index) => `
+                <div class="dialogue-line p-3 mb-2 rounded cursor-pointer flex gap-4 items-start ${line.role === 'A' ? 'ml-0' : 'ml-4 sm:ml-12'}" 
+                     id="dialogue-line-${index}"
+                     onclick="setActiveLine(${index})">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 shadow-md ${line.role === 'A' ? 'bg-gray-700 text-white' : 'bg-white text-nissan-black'}">
+                        ${line.role}
+                    </div>
+                    <div class="pt-1">
+                        <span class="text-xs text-gray-500 font-bold block mb-1">${line.speaker}</span>
+                        <p class="text-base sm:text-lg">${line.text}</p>
+                    </div>
+                    <button class="ml-auto mt-2 text-gray-500 hover:text-white" onclick="event.stopPropagation(); playSingleLine(${index})">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function setActiveLine(index) {
+            // Remove active class from all
+            document.querySelectorAll('.dialogue-line').forEach(el => el.classList.remove('active'));
+            
+            if (index !== -1 && index < dialogueData.length) {
+                activeDialogueLine = index;
+                document.getElementById(`dialogue-line-${index}`).classList.add('active');
+            } else {
+                activeDialogueLine = -1;
+            }
+        }
+
+        function getVoice() {
+            const voices = speechSynth.getVoices();
+            // Try to find a clear English voice, preferably male for supervisor context, but fallback to default
+            return voices.find(v => v.lang.includes('en-US') && v.name.includes('Google')) || 
+                   voices.find(v => v.lang.includes('en-US')) || 
+                   voices[0];
+        }
+
+        function playSingleLine(index) {
+            stopAudio();
+            setActiveLine(index);
+            
+            const speed = parseFloat(document.getElementById('playback-speed').value);
+            const text = dialogueData[index].text;
+            
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            currentUtterance.voice = getVoice();
+            currentUtterance.rate = speed;
+            
+            // Adjust pitch slightly to distinguish speakers
+            if (dialogueData[index].role === 'B') {
+                currentUtterance.pitch = 0.9;
+            } else {
+                currentUtterance.pitch = 1.1;
+            }
+
+            currentUtterance.onend = () => {
+                // Keep highlighted for shadowing practice
+            };
+
+            speechSynth.speak(currentUtterance);
+        }
+
+        async function playFullDialogue() {
+            stopAudio();
+            setActiveLine(-1); // Clear selection
+            
+            const speed = parseFloat(document.getElementById('playback-speed').value);
+            
+            // Sequential playback via promises
+            for (let i = 0; i < dialogueData.length; i++) {
+                await new Promise((resolve) => {
+                    setActiveLine(i);
+                    currentUtterance = new SpeechSynthesisUtterance(dialogueData[i].text);
+                    currentUtterance.voice = getVoice();
+                    currentUtterance.rate = speed;
+                    currentUtterance.pitch = dialogueData[i].role === 'B' ? 0.9 : 1.1;
+                    
+                    currentUtterance.onend = () => {
+                        setTimeout(resolve, 600); // Pause between lines
+                    };
+                    
+                    // Failsafe in case onend doesn't fire
+                    currentUtterance.onerror = resolve;
+                    
+                    speechSynth.speak(currentUtterance);
+                });
+                
+                // If stopped mid-way, break loop
+                if (!speechSynth.speaking && currentUtterance === null) break;
+            }
+            setActiveLine(-1);
+        }
+
+        function stopAudio() {
+            if (speechSynth.speaking) {
+                speechSynth.cancel();
+            }
+            if (activeAudio) {
+                activeAudio.pause();
+                activeAudio.currentTime = 0;
+            }
+            currentUtterance = null;
+        }
+
+        // --- Recorded Audio Playback ---
+        function updateAudioSpeed() {
+            const speed = parseFloat(document.getElementById('playback-speed').value);
+            if (activeAudio) {
+                activeAudio.playbackRate = speed;
+            }
+        }
+
+        function playRecordedAudio() {
+            stopAudio();
+            setActiveLine(-1);
+            
+            const btn = document.getElementById('btn-play-all');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Playing...';
+            btn.disabled = true;
+
+            // Load the provided audio file
+            if (!activeAudio || !activeAudio.src.includes('Generated%20Audio')) {
+                activeAudio = new Audio('Generated Audio September 05, 2026 - 12_48AM.wav');
+            }
+            
+            // Set playback speed based on selection
+            const speed = parseFloat(document.getElementById('playback-speed').value);
+            activeAudio.playbackRate = speed;
+            
+            activeAudio.play().catch(e => {
+                console.error("Audio playback error:", e);
+                alert("Could not load 'Generated Audio September 05, 2026 - 12_48AM.wav'. Ensure the file is saved in the same folder as this HTML document.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+            
+            activeAudio.onended = () => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            };
+        }
+
+        // --- Mock Recording Implementation ---
+        const recordBtn = document.getElementById('btn-record');
+        const visualizer = document.getElementById('audio-visualizer');
+        const recordStatus = document.getElementById('record-status');
+
+        recordBtn.addEventListener('click', () => {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
+
+        function startRecording() {
+            if (activeDialogueLine === -1) {
+                // If no line selected, select the first one
+                setActiveLine(0);
+            }
+            
+            isRecording = true;
+            recordBtn.classList.replace('bg-gray-700', 'bg-nissan-red');
+            recordBtn.classList.add('animate-pulse');
+            recordBtn.innerHTML = '<i class="fa-solid fa-stop"></i>';
+            recordStatus.textContent = "Recording... Read highlighted line.";
+            recordStatus.classList.replace('text-gray-400', 'text-nissan-red');
+            
+            // Mock visualization
+            recordingInterval = setInterval(() => {
+                const width = Math.random() * 80 + 10; // Random width between 10% and 90%
+                visualizer.style.width = `${width}%`;
+            }, 150);
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            clearInterval(recordingInterval);
+            
+            recordBtn.classList.replace('bg-nissan-red', 'bg-gray-700');
+            recordBtn.classList.remove('animate-pulse');
+            recordBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+            visualizer.style.width = '0%';
+            
+            recordStatus.textContent = "Processing audio...";
+            recordStatus.classList.replace('text-nissan-red', 'text-yellow-400');
+            
+            // Simulate processing and feedback
+            setTimeout(() => {
+                recordStatus.innerHTML = "<span class='text-green-500'>Good pacing!</span> Try the next line.";
+                recordStatus.classList.replace('text-yellow-400', 'text-gray-400');
+            }, 1500);
+        }
+
+
+        // --- Completion & Confetti Effects ---
+        function finishCourse() {
+            markModuleComplete(3);
+            stopAudio();
+            
+            // Show Modal
+            const modal = document.getElementById('success-modal');
+            const modalContent = document.getElementById('modal-content');
+            
+            modal.classList.remove('hidden');
+            // Small delay for display block to take effect before opacity transition
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 50);
+
+            fireGrandConfetti();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('success-modal');
+            const modalContent = document.getElementById('modal-content');
+            
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Lightweight Confetti System for Canvas
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationFrameId;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor(x, y, isSmall = false) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 8 + 4;
+                this.speedX = Math.random() * 6 - 3;
+                this.speedY = isSmall ? (Math.random() * -3 - 2) : (Math.random() * -8 - 2);
+                // Nissan Colors: Red, Silver, White, Dark Grey
+                const colors = ['#c3002f', '#c0c0c0', '#ffffff', '#555555'];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.gravity = 0.1;
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = Math.random() * 10 - 5;
+                this.opacity = 1;
+                this.decay = Math.random() * 0.01 + 0.005;
+            }
+            update() {
+                this.speedY += this.gravity;
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.rotation += this.rotationSpeed;
+                this.opacity -= this.decay;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate((this.rotation * Math.PI) / 180);
+                ctx.globalAlpha = Math.max(0, this.opacity);
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+                ctx.restore();
+            }
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw();
+                if (p.opacity <= 0 || p.y > canvas.height) {
+                    particles.splice(index, 1);
+                }
+            });
+            
+            if (particles.length > 0) {
+                animationFrameId = requestAnimationFrame(animateConfetti);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // final clear
+            }
+        }
+
+        function createParticles(x, y, amount, isSmall) {
+            for (let i = 0; i < amount; i++) {
+                particles.push(new Particle(x, y, isSmall));
+            }
+            if (!animationFrameId || particles.length === amount) {
+                cancelAnimationFrame(animationFrameId);
+                animateConfetti();
+            }
+        }
+
+        function triggerSmallConfetti() {
+            const rect = document.getElementById('btn-mod2-complete').getBoundingClientRect();
+            createParticles(rect.left + rect.width / 2, rect.top, 30, true);
+        }
+
+        function fireGrandConfetti() {
+            // Fire from center bottom
+            createParticles(window.innerWidth / 2, window.innerHeight, 100, false);
+            // Fire from corners
+            setTimeout(() => createParticles(0, window.innerHeight, 50, false), 200);
+            setTimeout(() => createParticles(window.innerWidth, window.innerHeight, 50, false), 400);
+        }
+
+        // --- Final Evaluation (Quiz) Logic ---
+        function startFinalQuiz() {
+            const nameInput = document.getElementById('student-name').value.trim();
+            const groupSelect = document.getElementById('student-group').value;
+
+            if (!nameInput || !groupSelect) {
+                alert("Please enter your Full Name and select a Group to continue.");
+                return;
+            }
+
+            finalStudent.name = nameInput;
+            finalStudent.group = groupSelect;
+
+            document.getElementById('quiz-student-display').textContent = `Student: ${nameInput} | ${groupSelect}`;
+            document.getElementById('quiz-registration').classList.add('hidden');
+            document.getElementById('quiz-active').classList.remove('hidden');
+
+            renderFinalQuestions();
+        }
+
+        function renderFinalQuestions() {
+            const container = document.getElementById('final-questions-container');
+            container.innerHTML = finalQuizData.map((item, qIndex) => `
+                <div class="bg-nissan-darkgrey p-5 rounded-lg border border-gray-700">
+                    <p class="font-bold mb-3 text-lg">${item.q}</p>
+                    <div class="flex flex-col gap-2">
+                        ${item.options.map((opt, oIndex) => `
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <div class="relative flex items-center justify-center">
+                                    <input type="radio" name="final-q${qIndex}" value="${oIndex}" class="peer sr-only">
+                                    <div class="w-5 h-5 rounded-full border-2 border-gray-500 peer-checked:border-nissan-red peer-checked:bg-nissan-red transition-all"></div>
+                                </div>
+                                <span class="group-hover:text-white transition-colors text-gray-300">${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function submitFinalQuiz() {
+            let score = 0;
+            let answeredAll = true;
+
+            finalQuizData.forEach((item, qIndex) => {
+                const selected = document.querySelector(`input[name="final-q${qIndex}"]:checked`);
+                if (!selected) {
+                    answeredAll = false;
+                } else {
+                    if (parseInt(selected.value) === item.ans) {
+                        score++;
+                    }
+                }
+            });
+
+            if (!answeredAll) {
+                const confirmSubmit = confirm("You have unanswered questions. Are you sure you want to submit?");
+                if (!confirmSubmit) return;
+            }
+
+            finalStudent.score = score;
+            const percentage = Math.round((score / finalQuizData.length) * 100);
+
+            // Update UI
+            document.getElementById('quiz-active').classList.add('hidden');
+            document.getElementById('quiz-results').classList.remove('hidden');
+            
+            const displayScore = document.getElementById('final-score-display');
+            const msg = document.getElementById('final-score-message');
+            const iconCont = document.getElementById('result-icon-container');
+            const icon = document.getElementById('result-icon');
+
+            displayScore.textContent = `${percentage}%`;
+            
+            if (percentage >= 80) {
+                msg.textContent = "Excellent work! You are ready to accurately report maintenance issues in English.";
+                displayScore.className = "text-5xl font-bold mb-2 text-green-500";
+                iconCont.className = "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg bg-green-600 shadow-green-900/50";
+                icon.className = "fa-solid fa-medal text-4xl text-white";
+                fireGrandConfetti();
+            } else {
+                msg.textContent = "Good effort, but you should review the Past Simple verbs and try again.";
+                displayScore.className = "text-5xl font-bold mb-2 text-yellow-500";
+                iconCont.className = "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg bg-yellow-600 shadow-yellow-900/50";
+                icon.className = "fa-solid fa-triangle-exclamation text-4xl text-white";
+            }
+        }
+
+        function downloadCertificate() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1200;
+            canvas.height = 800;
+            const ctx = canvas.getContext('2d');
+
+            // Dark Theme Background
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Red Border & Accent
+            ctx.strokeStyle = '#c3002f';
+            ctx.lineWidth = 15;
+            ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+            
+            ctx.fillStyle = '#c3002f';
+            ctx.fillRect(20, 20, canvas.width - 40, 120);
+
+            // Header Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Inter, Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('NISSAN LANGUAGE LAB', canvas.width / 2, 95);
+
+            // Certificate Text
+            ctx.fillStyle = '#efefef';
+            ctx.font = '32px Inter, Arial, sans-serif';
+            ctx.fillText('EVALUATION RESULTS', canvas.width / 2, 220);
+
+            // Student Info
+            ctx.font = 'bold 64px Inter, Arial, sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(finalStudent.name.toUpperCase(), canvas.width / 2, 350);
+
+            ctx.font = 'bold 36px Inter, Arial, sans-serif';
+            ctx.fillStyle = '#c0c0c0';
+            ctx.fillText(finalStudent.group, canvas.width / 2, 420);
+
+            // Score Background
+            const percentage = Math.round((finalStudent.score / finalQuizData.length) * 100);
+            const scoreColor = percentage >= 80 ? '#10b981' : '#f59e0b';
+            
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect((canvas.width / 2) - 150, 480, 300, 120);
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = scoreColor;
+            ctx.strokeRect((canvas.width / 2) - 150, 480, 300, 120);
+
+            // Score Text
+            ctx.fillStyle = scoreColor;
+            ctx.font = 'bold 72px Inter, Arial, sans-serif';
+            ctx.fillText(`${percentage}%`, canvas.width / 2, 565);
+
+            // Date
+            const today = new Date().toLocaleDateString();
+            ctx.fillStyle = '#777777';
+            ctx.font = '24px Inter, Arial, sans-serif';
+            ctx.fillText(`Completed on: ${today}`, canvas.width / 2, 700);
+            ctx.fillText(`Topic: Past Simple Reporting in Shift Handover`, canvas.width / 2, 740);
+
+            // Trigger Download
+            const dataURL = canvas.toDataURL('image/jpeg', 0.95);
+            const link = document.createElement('a');
+            const safeName = finalStudent.name.replace(/\s+/g, '_');
+            link.download = `Nissan_Training_Result_${safeName}.jpg`;
+            link.href = dataURL;
+            link.click();
+        }
+    </script>
+</body>
+</html>
